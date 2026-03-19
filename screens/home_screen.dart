@@ -13,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // 初始值必须在 Slider 的 min 和 max 范围内
   double _duration = 1.0; 
   double _budget = 500.0;
   int _participants = 50;
@@ -39,9 +38,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 同时运行海报生成和方案规划
+      
       final results = await Future.wait([
-        AiService.generatePoster(_theme, _location, _budget),
+        AiService.generatePoster(
+          _theme, 
+          _location, 
+          _budget
+        ),
         AiService.generatePlanning(
           _theme,
           _duration,
@@ -51,27 +54,39 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ]);
 
+    
       final Uint8List? imageBytes = results[0] as Uint8List?;
       final Map<String, dynamic> planData = results[1] as Map<String, dynamic>;
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      // --- 关键修正部分：传参必须与 ResultScreen 的构造函数严格对应 ---
+      
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultScreen(
             imageBytes: imageBytes,
-            planData: planData, // 只传递 ResultScreen 要求的两个参数
+            planData: planData, 
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
+      
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error generating plan: $e')),
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _generateEventPlan,
+          ),
+        ),
       );
     }
   }
@@ -82,15 +97,20 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Event Organizer Planner'),
         centerTitle: true,
+        elevation: 2,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // 主题选择
+            
             DropdownButtonFormField<String>(
               value: _theme, 
-              decoration: const InputDecoration(labelText: 'Event Theme', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Event Theme', 
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.event),
+              ),
               items: _themes.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
@@ -101,10 +121,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 地点选择
+            
             DropdownButtonFormField<String>(
               value: _location, 
-              decoration: const InputDecoration(labelText: 'Event Location', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Event Location', 
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.location_on),
+              ),
               items: _locations.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
@@ -115,8 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 持续时间
-            Text('Duration: ${_duration.toInt()} hours', style: const TextStyle(fontWeight: FontWeight.bold)),
+          
+            Text('Duration: ${_duration.toInt()} hours', 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             Slider(
               value: _duration,
               min: 1,
@@ -126,8 +151,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onChanged: (val) => setState(() => _duration = val),
             ),
 
-            // 预算
-            Text('Budget: RM ${_budget.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold)),
+          
+            Text('Budget: RM ${_budget.toInt()}', 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             Slider(
               value: _budget,
               min: 0,
@@ -137,8 +163,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onChanged: (val) => setState(() => _budget = val),
             ),
 
-            // 人数
-            Text('Expected Participants: $_participants', style: const TextStyle(fontWeight: FontWeight.bold)),
+            
+            Text('Expected Participants: $_participants', 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             Slider(
               value: _participants.toDouble(),
               min: 10,
@@ -150,17 +177,32 @@ class _HomeScreenState extends State<HomeScreen> {
             
             const SizedBox(height: 40),
 
+            
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('AI is creating your event plan...',
+                            style: TextStyle(color: Colors.blueGrey)),
+                      ],
+                    ),
+                  )
                 : ElevatedButton(
                     onPressed: _generateEventPlan,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: const Text(
                       'Generate Event Plan',
-                      style: TextStyle(fontSize: 18),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
           ],
